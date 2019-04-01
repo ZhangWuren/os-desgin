@@ -1,0 +1,20 @@
+mutex = 1, empty = k, full = 0
+
+Producer: //生产者进程
+    ...
+    创建随机数;
+    P(empty);
+    p(mutex);
+    //生产者操作
+    V(full);
+    V(mutex);
+    ...
+
+Consumer: //消费者进程
+    ...
+    P(full);
+    P(mutex);
+    //消费者操作
+    V(empty);
+    V(mutex);
+    ...
