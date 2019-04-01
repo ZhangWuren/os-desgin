@@ -6,6 +6,8 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <iostream>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define producer_num 2
 #define consumer_num 3
@@ -156,7 +158,7 @@ void runConsumer(int s_mutex_id, int s_empty_id, int s_full_id)
             P(s_full_id);
             P(s_mutex_id);
             //生产者操作
-            shmptr->arr[shmptr->number]=0;
+            shmptr->arr[shmptr->number] = 0;
             shmptr->number--;
             shmptr->count++;
             int data = shmptr->arr[shmptr->number];
@@ -183,7 +185,7 @@ int main(int argc, char *argv[])
     int s_mutex_id = semget(s_mutex, 1, IPC_CREAT | 0600);
     if (semctl(s_mutex_id, 0, SETVAL, 1) == -1) //对信号量执行控制操作(信号量集合标识，信号量的索引，要执行的操作命令，设置或返回信号量的参数)
     {
-        cout<<"11"<<endl;
+        cout << "11" << endl;
         perror("main:setctl");
         exit(1);
     }
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
     int s_empty_id = semget(s_empty, 1, IPC_CREAT | 0600);
     if (semctl(s_empty_id, 0, SETVAL, buffer_size) == -1)
     {
-        cout<<"22"<<endl;
+        cout << "22" << endl;
         perror("main:setctl");
         exit(1);
     }
@@ -201,7 +203,7 @@ int main(int argc, char *argv[])
     int s_full_id = semget(s_full, 1, IPC_CREAT | 0600);
     if (semctl(s_full_id, 0, SETVAL, 0) == -1)
     {
-        cout<<"33"<<endl;
+        cout << "33" << endl;
         perror("main:setctl");
         exit(1);
     }
@@ -247,7 +249,14 @@ int main(int argc, char *argv[])
         runConsumer(s_mutex_id, s_empty_id, s_full_id);
     }
 
-    sleep(7);
-    cout<<endl;
-    cout<<"运行结束"<<endl;
+    for (int i = 0; i < producer_num + consumer_num; i++)
+    {
+        int child_status;
+        wait(&child_status);
+    }
+    cout << endl;
+    cout << "运行结束" << endl;
+    semctl(s_empty_id, 0, IPC_RMID, 0); //IPC_RMID 删除信号量
+    semctl(s_full_id, 0, IPC_RMID, 0);
+    semctl(s_mutex_id, 0, IPC_RMID, 0);
 }
