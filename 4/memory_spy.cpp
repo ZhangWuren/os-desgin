@@ -7,26 +7,27 @@ using namespace std;
 
 int main()
 {
-	MEMORYSTATUSEX statex; //
+	MEMORYSTATUSEX statex;	//
 	statex.dwLength = sizeof(statex);
-	//»ñÈ¡ÏµÍ³ÄÚ´æĞÅÏ¢
+	//è·å–ç³»ç»Ÿå†…å­˜ä¿¡æ¯
 	GlobalMemoryStatusEx(&statex);
-	printf("-----------------------ÄÚ´æĞÅÏ¢-----------------------\n");
-	//ÄÚ´æÊ¹ÓÃÂÊ
-	printf("ÎïÀíÄÚ´æµÄÊ¹ÓÃÂÊÎª:%ld%%\n", statex.dwMemoryLoad);
-	//ÎïÀíÄÚ´æ
-	printf("ÎïÀíÄÚ´æµÄ×ÜÈİÁ¿Îª: %.2fGB.\n", (float)statex.ullTotalPhys / 1024 / 1024 / 1024);
-	//¿ÉÓÃÎïÀíÄÚ´æ
-	printf("¿ÉÓÃµÄÎïÀíÄÚ´æÎª: %.2fGB.\n", (float)statex.ullAvailPhys / 1024 / 1024 / 1024);
-	//Ìá½»µÄÄÚ´æÏŞÖÆ
-	printf("×ÜµÄ½»»»ÎÄ¼şÎª:%.2fGB.\n", (float)statex.ullTotalPageFile / 1024 / 1024 / 1024);
-	//µ±Ç°½ø³Ì¿ÉÒÔÌá½»µÄ×î´óÄÚ´æÁ¿
-	printf("¿ÉÓÃµÄ½»»»ÎÄ¼şÎª£º%.2fGB.\n", (float)statex.ullAvailPageFile / 1024 / 1024 / 1024);
-	//ĞéÄâÄÚ´æ
-	printf("ĞéÄâÄÚ´æµÄ×ÜÈİÁ¿Îª£º%.2fGB.\n", (float)statex.ullTotalVirtual / 1024 / 1024 / 1024);
-	//¿ÉÓÃĞéÄâÄÚ´æ
-	printf("¿ÉÓÃµÄĞéÄâÄÚ´æÎª£º%.2fGB.\n", (float)statex.ullAvailVirtual / 1024 / 1024 / 1024);
-	//±£Áô×Ö¶Î
-	printf("±£Áô×Ö¶ÎµÄÈİÁ¿Îª£º%.2fByte.\n", statex.ullAvailExtendedVirtual);
+	printf("-----------------------å†…å­˜ä¿¡æ¯-----------------------\n");
+	//å†…å­˜ä½¿ç”¨ç‡
+	printf("ç‰©ç†å†…å­˜çš„ä½¿ç”¨ç‡ä¸º:%ld%%\n", statex.dwMemoryLoad);
+	//ç‰©ç†å†…å­˜
+	printf("ç‰©ç†å†…å­˜çš„æ€»å®¹é‡ä¸º: %.2fGB.\n", (float)statex.ullTotalPhys / 1024 / 1024 / 1024);
+	//å¯ç”¨ç‰©ç†å†…å­˜
+	printf("å¯ç”¨çš„ç‰©ç†å†…å­˜ä¸º: %.2fGB.\n", (float)statex.ullAvailPhys / 1024 / 1024 / 1024);
+	//æäº¤çš„å†…å­˜é™åˆ¶
+	printf("æ€»çš„äº¤æ¢æ–‡ä»¶ä¸º:%.2fGB.\n", (float)statex.ullTotalPageFile / 1024 / 1024 / 1024);
+	//å½“å‰è¿›ç¨‹å¯ä»¥æäº¤çš„æœ€å¤§å†…å­˜é‡
+	printf("å¯ç”¨çš„äº¤æ¢æ–‡ä»¶ä¸ºï¼š%.2fGB.\n", (float)statex.ullAvailPageFile / 1024 / 1024 / 1024);
+	//è™šæ‹Ÿå†…å­˜
+	printf("è™šæ‹Ÿå†…å­˜çš„æ€»å®¹é‡ä¸ºï¼š%.2fGB.\n", (float)statex.ullTotalVirtual/1024 / 1024 / 1024);
+	//å¯ç”¨è™šæ‹Ÿå†…å­˜
+	printf("å¯ç”¨çš„è™šæ‹Ÿå†…å­˜ä¸ºï¼š%.2fGB.\n", (float)statex.ullAvailVirtual/1024 / 1024 / 1024);
+	//ä¿ç•™å­—æ®µ
+	printf("ä¿ç•™å­—æ®µçš„å®¹é‡ä¸ºï¼š%.2fByte.\n",statex.ullAvailExtendedVirtual);
+	
 	return 0;
 }
