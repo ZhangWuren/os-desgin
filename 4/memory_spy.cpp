@@ -1,48 +1,245 @@
-#include <Windows.h>
-#include <iostream>
-#include <Shlwapi.h>
+#include "stdafx.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <iostream> 
+#include <windows.h>
+#include <psapi.h>
+#include <tlhelp32.h>
+#include <shlwapi.h>
 #include <iomanip>
+#pragma comment(lib,"Shlwapi.lib")
 #define DIV 1024
-#pragma comment(lib, "shlwapi.lib")
 using namespace std;
 
-int main()
+//ÏÔÊ¾±£»¤±ê¼Ç£¬¸Ã±ê¼Ç±íÊ¾ÔÊĞíÓ¦ÓÃ³ÌĞò¶ÔÄÚ´æ½øĞĞ·ÃÎÊµÄÀàĞÍ
+inline bool TestSet(DWORD dwTarget, DWORD dwMask)
 {
-	//æ¥è‡ªhttps://docs.microsoft.com/zh-cn/windows/desktop/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex
-	MEMORYSTATUSEX statex;
-	statex.dwLength = sizeof(statex);
-	//è·å–ç‰©ç†å†…å­˜ä¿¡æ¯
-	if (GlobalMemoryStatusEx(&statex) == false)
-	{
-		cout << GetLastError() << endl;
-	}
-	cout << "-------------------statement of memory-------------------" << endl;
-	cout << "The statement of physical memory: " << endl;
-	//å†…å­˜ä½¿ç”¨
-	cout << "There is " << statex.dwLength << " percent of memory in use." << endl;
-	//ç‰©ç†å†…å­˜å¤§å°
-	cout << "There are " << statex.ullTotalPhys / DIV << " total KB of physical memory." << endl;
-	//ç©ºé—²å†…å­˜å¤§å°
-	cout << "There are " << statex.ullAvailPhys / DIV << " free KB of physical memory." << endl;
-	//æ€»çš„é¡µæ–‡ä»¶å¤§å°
-	cout << "There are " << statex.ullTotalPageFile / DIV << " total KB of paging file." << endl;
-	//ç©ºé—²é¡µæ–‡ä»¶å¤§å°
-	cout << "There are " << statex.ullAvailPageFile / DIV << " free KB of paging file." << endl;
-	//è™šæ‹Ÿå†…å­˜å¤§å°
-	cout << "There are " << statex.ullTotalVirtual / DIV << " total KB of virtual memory." << endl;
-	//å¯ç”¨çš„è™šæ‹Ÿå†…å­˜å¤§å°
-	cout << "There are " << statex.ullAvailVirtual / DIV << " free  KB of virtual memory." << endl;
+	return ((dwTarget &dwMask) == dwMask);
+}
 
-	//æ¥è‡ªä¹¦æœ¬P286
-	//è·å¾—ç³»ç»Ÿä¿¡æ¯
+#define SHOWMASK(dwTarget,type) if(TestSet(dwTarget,PAGE_##type)){cout << "," << #type;}
+
+void showProtection(DWORD dwTarget)
+{
+	//¶¨ÒåµÄÒ³Ãæ±£»¤ÀàĞÍ
+	SHOWMASK(dwTarget, READONLY);
+	SHOWMASK(dwTarget, GUARD);
+	SHOWMASK(dwTarget, NOCACHE);
+	SHOWMASK(dwTarget, READWRITE);
+	SHOWMASK(dwTarget, WRITECOPY);
+	SHOWMASK(dwTarget, EXECUTE);
+	SHOWMASK(dwTarget, EXECUTE_READ);
+	SHOWMASK(dwTarget, EXECUTE_READWRITE);
+	SHOWMASK(dwTarget, EXECUTE_WRITECOPY);
+	SHOWMASK(dwTarget, NOACCESS);
+}
+
+void getSystemInformation()
+{	//À´×ÔÊé±¾P286
+	//»ñµÃÏµÍ³ĞÅÏ¢
 	SYSTEM_INFO si;
 	ZeroMemory(&si, sizeof(si));
 	GetSystemInfo(&si);
 
-	cout << "-------------------statement of system-------------------" << endl;
-	//è™šæ‹Ÿå†…å­˜é¡µå¤§å°
+	cout << "-------------------System Information-------------------" << endl;
+	//ĞéÄâÄÚ´æÒ³´óĞ¡
 	cout << "Virtual memory page size: " << si.dwPageSize / DIV << "KB" << endl;
-	cout << "Minimum application address: " << si.lpMinimumApplicationAddress << endl;
-	cout << "Maximum application address: " << si.lpMaximumApplicationAddress << endl;
+	//×îĞ¡µØÖ·
+	cout << "Minimum application address: 0x" << si.lpMinimumApplicationAddress << endl;
+	//×î´óµØÖ·
+	cout << "Maximum application address: 0x" << si.lpMaximumApplicationAddress << endl;
+	cout << endl;
+}
+
+void getPerformanceInformation()
+{	//https://docs.microsoft.com/zh-cn/windows/desktop/api/psapi/ns-psapi-_performance_information
+	//»ñµÃ´æ´¢Æ÷ĞÅÏ¢
+	PERFORMANCE_INFORMATION pi;
+	ZeroMemory(&pi, sizeof(pi));
+	if (GetPerformanceInfo(&pi, sizeof(pi)) == false)
+	{
+		cout << GetLastError() << endl;
+		return;
+	}
+	cout << "-------------------Performence Information-------------------" << endl;
+	//Ò³Ãæ´óĞ¡ ÒÔ×Ö½ÚÎªµ¥Î»
+	cout << "The size of a page: " << pi.PageSize / DIV << "KB" << endl;
+	//ÏµÍ³µ±Ç°Ìá½»µÄÒ³Êı
+	cout << "The number of pages currently committed by the system is: " << pi.CommitTotal << endl;
+	//ÏµÍ³¿ÉÒÔÔÚ²»À©Õ¹·ÖÒ³ÎÄ¼şµÄÇé¿öÏÂÌá½»µÄµ±Ç°×î´óÒ³Êı
+	cout << "The current maximum number of pages: " << pi.CommitLimit << endl;
+	//ÉÏ´ÎÖØÆôºó×î´óÌá½»×´Ì¬µÄÒ³Êı
+	cout << "The maximum number of pages since the last system reboot: " << pi.CommitPeak << endl;
+	//Êµ¼ÊÎïÀíÄÚ´æÁ¿ ÒÔÒ³Îªµ¥Î»
+	cout << "The amount of actual physical memory: " << pi.PhysicalTotal << endl;
+	//µ±Ç°¿ÉÓÃµÄÎïÀíÄÚ´æÁ¿ ÒÔÒ³Îªµ¥Î»
+	cout << "The amount of physical memory currently available: " << pi.PhysicalAvailable << endl;
+	//ÏµÍ³»º´æÄÚ´æÁ¿ ÒÔÒ³Îªµ¥Î»
+	cout << "The amount of system cache memory:" << pi.SystemCache << endl;
+	//·ÖÒ³ºÍ·Ç·ÖÒ³ÄÚºË³ØÖĞµ±Ç°ÄÚ´æµÄ×ÜºÍ ÒÔÒ³Îªµ¥Î»
+	cout << "The sum of the memory currently in the paged and nonpaged kernel pools: " << pi.KernelTotal << endl;
+	//µ±Ç°ÔÚ·ÖÒ³ÄÚºË³ØÖĞµÄÄÚ´æ ÒÔÒ³Îªµ¥Î»
+	cout << "The memory currently in the paged kernel pool: " << pi.KernelPaged << endl;
+	//µ±Ç°ÔÚ·Ç·ÖÒ³ÄÚºË³ØÖĞµÄÄÚ´æ ÒÔÒ³Îªµ¥Î»
+	cout << "The memory currently in the nonpaged kernel pool " << pi.KernelNonpaged << endl;
+	//µ±Ç°´ò¿ª¾ä±úµÄÊıÁ¿
+	cout << "The current number of open handles: " << pi.HandleCount << endl;
+	//µ±Ç°´ò¿ª½ø³ÌµÄÊıÁ¿
+	cout << "The current number of processes: " << pi.ProcessCount << endl;
+	//µ±Ç°´ò¿ªÏß³ÌµÄÊıÁ¿
+	cout << "The current number of threads: " << pi.ThreadCount << endl;
+	cout << endl;
+
+}
+
+void getMemoryInformation()
+{	//À´×Ôhttps://docs.microsoft.com/zh-cn/windows/desktop/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex
+	MEMORYSTATUSEX statex;
+	statex.dwLength = sizeof(statex);
+	//»ñÈ¡ÎïÀíÄÚ´æĞÅÏ¢
+	if (GlobalMemoryStatusEx(&statex) == false)
+	{
+		cout << GetLastError() << endl;
+		return;
+	}
+	cout << "-------------------Physical Memory Infromation-------------------" << endl;
+	//ÄÚ´æÊ¹ÓÃ
+	cout << "There is " << statex.dwLength << " percent of memory in use." << endl;
+	//ÎïÀíÄÚ´æ´óĞ¡
+	cout << "There are " << statex.ullTotalPhys / DIV << " total KB of physical memory." << endl;
+	//¿ÕÏĞÄÚ´æ´óĞ¡
+	cout << "There are " << statex.ullAvailPhys / DIV << " free KB of physical memory." << endl;
+	//×ÜµÄÒ³ÎÄ¼ş´óĞ¡
+	cout << "There are " << statex.ullTotalPageFile / DIV << " total KB of paging file." << endl;
+	//¿ÕÏĞÒ³ÎÄ¼ş´óĞ¡
+	cout << "There are " << statex.ullAvailPageFile / DIV << " free KB of paging file." << endl;
+	//ĞéÄâÄÚ´æ´óĞ¡
+	cout << "There are " << statex.ullTotalVirtual / DIV << " total KB of virtual memory." << endl;
+	//¿ÉÓÃµÄĞéÄâÄÚ´æ´óĞ¡
+	cout << "There are " << statex.ullAvailVirtual / DIV << " free  KB of virtual memory." << endl;
+	cout << endl;
+}
+
+void getProcessInformation()
+{
+	PROCESSENTRY32 cp;
+	cp.dwSize = sizeof(cp);
+	HANDLE hProcess = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); //½ø³Ì¿ìÕÕ
+	if (hProcess == INVALID_HANDLE_VALUE)
+	{
+		cout << "Create snapshot error" << endl;
+		return;
+	}
+
+	cout << "-------------------Process Information-------------------" << endl;
+
+	bool bMore = Process32First(hProcess, &cp);
+	while (bMore)
+	{
+		cout << "PID: " << cp.th32ParentProcessID << " Name: " << cp.szExeFile << endl;
+		bMore = Process32Next(hProcess, &cp);
+	}
+
+	CloseHandle(hProcess);
+}
+
+void getProcessInfoByID()
+{
+	int PID;
+	cout << "-------------------Get process information by ID-------------------" << endl;
+	cout << "Enter PID:";
+	cin >> PID;
+	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, PID);
+
+	SYSTEM_INFO si;	//ÏµÍ³ĞÅÏ¢½á¹¹
+	ZeroMemory(&si, sizeof(si));	//³õÊ¼»¯
+	GetSystemInfo(&si);	//»ñµÃÏµÍ³ĞÅÏ¢
+
+	MEMORY_BASIC_INFORMATION mbi;	//½ø³ÌĞéÄâÄÚ´æ¿Õ¼äµÄ»ù±¾ĞÅÏ¢½á¹¹
+	ZeroMemory(&mbi, sizeof(mbi));	//·ÖÅä»º³åÇø£¬ÓÃÓÚ±£´æĞÅÏ¢
+
+									//Ñ­»·Õû¸öÓ¦ÓÃ³ÌĞòµØÖ·¿Õ¼ä
+	LPCVOID pBlock = (LPVOID)si.lpMinimumApplicationAddress;
+	while (pBlock < si.lpMaximumApplicationAddress)
+	{
+		//»ñµÃÏÂÒ»¸öĞéÄâÄÚ´æ¿éµÄĞÅÏ¢
+		if (VirtualQueryEx(
+			hProcess,	//Ïà¹ØµÄ½ø³Ì
+			pBlock,		//¿ªÊ¼Î»ÖÃ
+			&mbi,		//»º³åÇø
+			sizeof(mbi)) == sizeof(mbi))	//³¤¶ÈµÄÈ·ÈÏ£¬Èç¹ûÊ§°Ü·µ»Ø0
+		{
+			//¼ÆËã¿éµÄ½áÎ²¼°Æä³¤¶È
+			LPCVOID pEnd = (PBYTE)pBlock + mbi.RegionSize;
+			TCHAR szSize[MAX_PATH];
+			//½«Êı×Ö×ª»»³É×Ö·û´®
+			StrFormatByteSize(mbi.RegionSize, szSize, MAX_PATH);
+
+			//ÏÔÊ¾¿éµØÖ·ºÍ³¤¶È
+			cout.fill('0');
+			cout << hex << setw(8) << (DWORD)pBlock << "-" << hex << setw(8) << (DWORD)pEnd << (strlen(szSize) == 7 ? "(" : "(") << szSize << ")";
+
+			//ÏÔÊ¾¿éµÄ×´Ì¬
+			switch (mbi.State)
+			{
+			case MEM_COMMIT:
+				printf("Commited");
+				break;
+			case MEM_FREE:
+				printf("Free");
+				break;
+			case MEM_RESERVE:
+				printf("Reserved");
+				break;
+			}
+
+			//ÏÔÊ¾±£»¤
+			if (mbi.Protect == 0 && mbi.State != MEM_FREE)
+			{
+				mbi.Protect = PAGE_READONLY;
+			}
+			showProtection(mbi.Protect);
+
+			//ÏÔÊ¾ÀàĞÍ
+			switch (mbi.Type)
+			{
+			case MEM_IMAGE:
+				printf(", Image");
+				break;
+			case MEM_MAPPED:
+				printf(", Mapped");
+				break;
+			case MEM_PRIVATE:
+				printf(", Private");
+				break;
+			}
+
+			//¼ìÑé¿ÉÖ´ĞĞµÄÓ³Ïñ
+			TCHAR szFilename[MAX_PATH];
+			if (GetModuleFileName(
+				(HMODULE)pBlock,			//Êµ¼ÊĞéÄâÄÚ´æµÄÄ£¿é¾ä±ú
+				szFilename,					//ÍêÈ«Ö¸¶¨µÄÎÄ¼şÃû³Æ
+				MAX_PATH) > 0)				//Êµ¼ÊÊ¹ÓÃµÄ»º³åÇø³¤¶È
+			{
+				//³ıÈ¥Â·¾¶²¢ÏÔÊ¾
+				PathStripPath(szFilename);
+				printf(", Module:%s", szFilename);
+			}
+
+			printf("\n");
+			//ÒÆ¶¯¿éÖ¸ÕëÒÔ»ñµÃÏÂÒ»¸ö¿é
+			pBlock = pEnd;
+		}
+	}
+}
+
+int main()
+{
+	getSystemInformation();		//»ñÈ¡ÏµÍ³ĞÅÏ¢
+	getPerformanceInformation();	//»ñÈ¡ĞÔÄÜĞÅÏ¢
+	getMemoryInformation();		//»ñÈ¡´æ´¢Æ÷ĞÅÏ¢
+	getProcessInformation();	//»ñÈ¡½ø³ÌĞÅÏ¢
+	getProcessInfoByID();	//¸ù¾İPID»ñÈ¡¸Ã½ø³ÌµÄĞéÄâµØÖ·¿Õ¼äºÍ¹¤×÷¼¯
 	return 0;
 }
