@@ -69,13 +69,16 @@ void copyDir(const char *d_source, const char *d_target)
             continue;
         }
         if (entry->d_type == DT_DIR)
-        { //如果读到的类型为4，即为目录，则复制目录
+        {                                                 //如果读到的类型为4，即为目录，则复制目录
             dir_source.append("/").append(entry->d_name); //拼接路径
             dir_target.append("/").append(entry->d_name);
 
+            cout << dir_source.data() << endl;
+            cout << dir_target.data() << endl;
+
             stat(dir_source.data(), &statbuff);         //将dir_source信息放入statbuff中
             mkdir(dir_target.data(), statbuff.st_mode); //创建新目录并且给予权限
-            timebuff.actime = statbuff.st_atime; //复制创建和修改时间
+            timebuff.actime = statbuff.st_atime;        //复制创建和修改时间
             timebuff.modtime = statbuff.st_mtime;
             utime(dir_target.data(), &timebuff);
             //cout<<statbuff.st_atime<<endl;
