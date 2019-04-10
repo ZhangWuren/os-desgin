@@ -173,12 +173,15 @@ void getProcessInfoByID()
 			//计算块的结尾及其长度
 			LPCVOID pEnd = (PBYTE)pBlock + mbi.RegionSize;
 			TCHAR szSize[MAX_PATH];
-			//将数字转换成字符串
+			
 			StrFormatByteSize(mbi.RegionSize, szSize, MAX_PATH);
 
 			//显示块地址和长度
 			cout.fill('0');
-			cout << hex << setw(8) << (DWORD)pBlock << "-" << hex << setw(8) << (DWORD)pEnd << (strlen(szSize) == 7 ? "(" : "(") << szSize << ")";
+			cout << hex << setw(8) << (DWORD)pBlock 
+				<< "-" << hex << setw(8) << (DWORD)pEnd 
+				<< (strlen(szSize) == 7 ? "(" : "(") << szSize 
+				<< ")";
 
 			//显示块的状态
 			switch (mbi.State)
@@ -236,10 +239,27 @@ void getProcessInfoByID()
 
 int main()
 {
-	getSystemInformation();		//获取系统信息
-	getPerformanceInformation();	//获取性能信息
-	getMemoryInformation();		//获取存储器信息
-	getProcessInformation();	//获取进程信息
-	getProcessInfoByID();	//根据PID获取该进程的虚拟地址空间和工作集
+	cout << "0:获取系统信息" << endl;
+	cout << "1:获取性能信息" << endl;
+	cout << "2:获取存储器信息" << endl;
+	cout << "3:获取所有进程信息" << endl;
+	cout << "4:根据PID获取该进程的虚拟地址空间和工作集" << endl;
+	cout << "9:退出" << endl;
+	while (1)
+	{
+		int i;
+		cin >> i;
+		switch (i)
+		{
+		case 0:getSystemInformation(); continue;//获取系统信息
+		case 1:getPerformanceInformation(); continue;//获取性能信息
+		case 2:getMemoryInformation(); continue;//获取存储器信息
+		case 3:getProcessInformation(); continue;//获取进程信息
+		case 4:getProcessInfoByID(); continue;//根据PID获取该进程的虚拟地址空间和工作集
+		case 9:break;
+		}
+		if (i == 9)break;
+	}
+	cout << "结束" << endl;
 	return 0;
 }
