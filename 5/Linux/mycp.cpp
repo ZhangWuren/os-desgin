@@ -26,7 +26,7 @@ void copySingleFile(const char *file_source, const char *file_target) //复制�
     //将源文件信息放入statbuff中
     stat(file_source, &statbuff);
 
-    //创建目标文件
+    //创建目标文件,并赋予权限
     if ((f_target = creat(file_target, statbuff.st_mode)) == -1)
     {
         cout << "Can't create " << file_source << endl;
@@ -56,11 +56,11 @@ void copyDir(const char *d_source, const char *d_target)
     struct utimbuf timebuff;
     struct dirent *entry;
     DIR *dp;
-    string dir_source = d_source;
-    string dir_target = d_target;
+    string source = d_source;
+    string target = d_target;
 
     //打开目录
-    dp = opendir(dir_source.data());
+    dp = opendir(source.data());
     //读取目录
     while ((entry = readdir(dp)) != NULL)
     {
@@ -70,30 +70,41 @@ void copyDir(const char *d_source, const char *d_target)
         }
         if (entry->d_type == DT_DIR)
         {                                                 //如果读到的类型为4，即为目录，则复制目录
-            dir_source.append("/").append(entry->d_name); //拼接路径
-            dir_target.append("/").append(entry->d_name);
+            source.append("/").append(entry->d_name); //拼接路径
+            target.append("/").append(entry->d_name);
 
-            cout << dir_source.data() << endl;
-            cout << dir_target.data() << endl;
+            cout << source.data() << endl;
+            cout << target.data() << endl;
 
-            stat(dir_source.data(), &statbuff);         //将dir_source信息放入statbuff中
-            mkdir(dir_target.data(), statbuff.st_mode); //创建新目录并且给予权限
+            stat(source.data(), &statbuff);         //将source信息放入statbuff中
+            mkdir(target.data(), statbuff.st_mode); //创建新目录并且给予权限
             timebuff.actime = statbuff.st_atime;        //复制创建和修改时间
             timebuff.modtime = statbuff.st_mtime;
-            utime(dir_target.data(), &timebuff);
-            //cout<<statbuff.st_atime<<endl;
             //递归
-            copyDir(dir_source.data(), dir_target.data());
-            dir_source = d_source;
-            dir_target = d_target;
+            copyDir(source.data(), target.data());
+
+            utime(target.data(), &timebuff);
+            source = d_source;
+            target = d_target;
         }
         else
         {
-            dir_source.append("/").append(entry->d_name);
-            dir_target.append("/").append(entry->d_name);
-            copySingleFile(dir_source.data(), dir_target.data());
-            dir_source = d_source;
-            dir_target = d_target;
+            source.append("/").append(entry->d_name);
+            target.append("/").append(entry->d_name);
+            struct stat statbuff;
+            lstat(source.data(), &statbuff);
+
+            if (S_ISLNK(statbuff.st_mode))  //判断是否是软连接
+            {   //复制软连接
+                char buffer[BUFSIZ];
+                readlink(source.data(), buffer, BUFSIZ);
+                symlink(buffer, target.data());
+            }
+            else{
+                copySingleFile(source.data(), target.data());
+            }
+            source = d_source;
+            target = d_target;
         }
     }
 }
@@ -107,26 +118,26 @@ int main(int argc, char *argv[])
 
     DIR *dir;
 
-    char *dir_source = argv[1];
-    char *dir_target = argv[2];
+    char *source = argv[1];
+    char *target = argv[2];
 
     struct stat statbuff;    //文件数据结构
     struct utimbuf timebuff; //文件时间结构
 
-    if ((dir = opendir(dir_source)) == NULL)
+    if ((dir = opendir(source)) == NULL)
     {
         cout << "Can't open source dir" << endl;
         return 0;
     }
-    if ((dir = opendir(dir_target)) == NULL)
+    if ((dir = opendir(target)) == NULL)
     {
-        stat(dir_source, &statbuff);
-        mkdir(dir_target, statbuff.st_mode);
+        stat(source, &statbuff);
+        mkdir(target, statbuff.st_mode);
         timebuff.actime = statbuff.st_atime;
         timebuff.modtime = statbuff.st_mtime;
-        utime(dir_target, &timebuff);
+        utime(target, &timebuff);
     }
-    copyDir(dir_source, dir_target);
+    copyDir(source, target);
 
     cout << "Copy Completed!" << endl;
     return 0;
