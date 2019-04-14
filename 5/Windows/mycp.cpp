@@ -4,11 +4,35 @@
 #include "string"
 
 using namespace std;
+void updateTime(const char* source, const char* target)
+{//¸üĞÂÄ¿Â¼µÄÊ±¼ä
+	HANDLE h_source = CreateFile(source,	//´ò¿ªÎÄ¼şµÈ¶ÔÏóµÄÃû×Ö
+		GENERIC_READ | GENERIC_WRITE,	//READºÍWRITEÁªºÏÊ¹ÓÃÊµÏÖ¶ÁĞ´²Ù×÷
+		FILE_SHARE_READ,	//±íÊ¾ÔÊĞí¶ÔÎÄ¼ş½øĞĞ¹²Ïí·ÃÎÊ
+		NULL,	//Ä¬ÈÏ°²È«¶ÔÏó
+		OPEN_EXISTING,	//´ò¿ªÒ»¸öÒÑ¾­´æÔÚµÄÎÄ¼ş£¬Èç¹ûÎÄ¼ş²»´æÔÚ£¬Ôòµ÷ÓÃÊ§°Ü
+		FILE_FLAG_BACKUP_SEMANTICS,	//Ö¸Ê¾ÏµÍ³ÎªÎÄ¼şµÄ´ò¿ª»ò´´½¨Ö´ĞĞÒ»¸ö±¸·İ»ò»Ö¸´²Ù×÷
+		NULL);
+	HANDLE h_target = CreateFile(target,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS,
+		NULL);
+
+	WIN32_FIND_DATA time_source;
+	GetFileTime(h_source, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
+	SetFileTime(h_target, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
+
+	CloseHandle(h_source);
+	CloseHandle(h_target);
+}
 
 void copySingleFile(const char *file_source, const char *file_target)//¸´ÖÆµ¥¸öÎÄ¼ş
 {
 	WIN32_FIND_DATA lpfindfiledata;
-	//²éÕÒÖ¸¶¨ÎÄ¼şÂ·¾¶
+	
 	HANDLE h_find = FindFirstFile(file_source,//ÎÄ¼şÃû
 		&lpfindfiledata);//Êı¾İ»º³åÇø
 
@@ -16,22 +40,22 @@ void copySingleFile(const char *file_source, const char *file_target)//¸´ÖÆµ¥¸öÎ
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ,
 		NULL,
-		OPEN_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
+		OPEN_EXISTING,	
+		FILE_ATTRIBUTE_NORMAL,	//Ä¬ÈÏÊôĞÔ
 		NULL);
 
 	HANDLE h_target = CreateFile(file_target,
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ,
 		NULL,
-		CREATE_ALWAYS,
+		CREATE_ALWAYS,	//´´½¨Ò»¸öĞÂÎÄ¼ş£¬Èç¹ûÒÑ´æÔÚÔòÇå¿Õ²¢ÖØĞ´
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 
 	WIN32_FIND_DATA time_source;
 	GetFileTime(h_source, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
 
-	LONG size = lpfindfiledata.nFileSizeLow - lpfindfiledata.nFileSizeHigh;
+	LONG size = lpfindfiledata.nFileSizeLow - lpfindfiledata.nFileSizeHigh;	//»ñÈ¡ÎÄ¼ş³¤¶È
 
 	DWORD wordbit;
 
@@ -63,8 +87,7 @@ void copyDir(const char *d_source, const char *d_target)
 	string f_source = d_source;
 	string f_target = d_target;
 
-	f_source.append("\\*.*");
-	f_target.append("\\");
+	f_source.append("\\*.*");	//±íÊ¾ËÑË÷ËùÓĞÎÄ¼ş
 
 	HANDLE hfind = FindFirstFile(f_source.data(),//ÎÄ¼şÃû
 		&lpfindfiledata);//Êı¾İ»º³åÇø
@@ -73,35 +96,18 @@ void copyDir(const char *d_source, const char *d_target)
 		while (FindNextFile(hfind, &lpfindfiledata) != 0)//Ñ­»·²éÕÒFindFirstFile()º¯ÊıËÑË÷ºóµÄÏÂÒ»¸öÎÄ¼ş
 		{
 			//²éÕÒÏÂÒ»¸öÎÄ¼ş³É¹¦
-			if ((lpfindfiledata.dwFileAttributes) == 16)//ÅĞ¶ÏÊÇ·ñÎªÄ¿Â¼s
+			if (lpfindfiledata.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY)//ÅĞ¶ÏÊÇ·ñÎªÄ¿Â¼
 			{
-				if ((strcmp(lpfindfiledata.cFileName, ".") != 0) && (strcmp(lpfindfiledata.cFileName, "..") != 0))
+				if ((strcmp(lpfindfiledata.cFileName, ".") != 0) && (strcmp(lpfindfiledata.cFileName, "..") != 0))	//Èç¹û²»ÊÇµ±Ç°Õâ¸öÄ¿Â¼ºÍÉÏÒ»¼¶Ä¿Â¼
 				{
 					f_source.clear();
 					f_source.append(d_source).append("\\").append(lpfindfiledata.cFileName);
-					f_target.append(lpfindfiledata.cFileName);//×·¼ÓÎÄ¼ş
+					f_target.append("\\").append(lpfindfiledata.cFileName);//×·¼ÓÎÄ¼şÃû
 
 					CreateDirectory(f_target.data(), NULL);//ÎªÄ¿±êÎÄ¼ş´´½¨Ä¿Â¼
 					copyDir(f_source.data(), f_target.data());//½øÈë×ÓÄ¿Â¼¸´ÖÆ
 
-					HANDLE h_source = CreateFile(f_source.data(),
-						GENERIC_READ | GENERIC_WRITE,
-						FILE_SHARE_READ,
-						NULL,
-						OPEN_EXISTING,
-						FILE_FLAG_BACKUP_SEMANTICS,
-						NULL);
-					HANDLE h_target = CreateFile(f_target.data(),
-						GENERIC_READ | GENERIC_WRITE,
-						FILE_SHARE_READ,
-						NULL,
-						OPEN_EXISTING,
-						FILE_FLAG_BACKUP_SEMANTICS,
-						NULL);
-
-					WIN32_FIND_DATA time_source;
-					GetFileTime(h_source, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
-					SetFileTime(h_target, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
+					updateTime(f_source.data(), f_target.data());//¸üĞÂÊ±¼ä
 
 					f_source.clear();
 					f_source.append(d_source).append("\\");
@@ -113,9 +119,9 @@ void copyDir(const char *d_source, const char *d_target)
 			{
 				f_source.clear();
 				f_source.append(d_source).append("\\").append(lpfindfiledata.cFileName);
-				f_target.append(lpfindfiledata.cFileName);//×·¼ÓÎÄ¼ş
+				f_target.append("\\").append(lpfindfiledata.cFileName);//×·¼ÓÎÄ¼ş
 
-				copySingleFile(f_source.data(),f_target.data());//Ö±½Óµ÷ÓÃÎÄ¼ş¸´ÖÆº¯Êı
+				copySingleFile(f_source.data(), f_target.data());//Ö±½Óµ÷ÓÃÎÄ¼ş¸´ÖÆº¯Êı
 
 				f_source.clear();
 				f_source.append(d_source).append("\\");
@@ -128,9 +134,10 @@ void copyDir(const char *d_source, const char *d_target)
 	{
 		cout << "²éÕÒÖ¸¶¨ÎÄ¼şÂ·¾¶µÄÎÄ¼şÊ§°Ü!" << endl;
 	}
+	CloseHandle(hfind);
 }
 
-int main(int argc,char* argv[])
+int main(int argc, char* argv[])
 {
 	if (argc != 3) //ÅĞ¶Ï²ÎÊıÊÇ·ñºÏÀí
 	{
@@ -142,33 +149,17 @@ int main(int argc,char* argv[])
 		WIN32_FIND_DATA lpfindfiledata;
 		if (FindFirstFile(argv[1], &lpfindfiledata) == INVALID_HANDLE_VALUE)
 		{
-			printf("²éÕÒÔ´ÎÄ¼şÂ·¾¶Ê§°Ü!\n");
+			cout<<"²éÕÒÔ´ÎÄ¼şÂ·¾¶Ê§°Ü!"<<endl;
 		}
 		if (FindFirstFile(argv[2], &lpfindfiledata) == INVALID_HANDLE_VALUE)
 		{
 			CreateDirectory(argv[2], NULL);//ÎªÄ¿±êÎÄ¼ş´´½¨Ä¿Â¼
 		}
-		copyDir(argv[1], argv[2]);
 
-		HANDLE h_source = CreateFile(argv[1],
-			GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_READ,
-			NULL,
-			OPEN_EXISTING,
-			FILE_FLAG_BACKUP_SEMANTICS,
-			NULL);
-		HANDLE h_target = CreateFile(argv[2],
-			GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_READ,
-			NULL,
-			OPEN_EXISTING,
-			FILE_FLAG_BACKUP_SEMANTICS,
-			NULL);
+		copyDir(argv[1], argv[2]);	//¿ªÊ¼¸´ÖÆ
 
-		WIN32_FIND_DATA time_source;
-		GetFileTime(h_source, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
-		SetFileTime(h_target, &time_source.ftCreationTime, &time_source.ftLastAccessTime, &time_source.ftLastWriteTime);
+		updateTime(argv[1], argv[2]);	//¸üĞÂÄ¿Â¼µÄÊ±¼ä
 	}
-	printf("¸´ÖÆÍê³É!\n");
+	cout<<"¸´ÖÆÍê³É!" << endl;
 	return 0;
 }
